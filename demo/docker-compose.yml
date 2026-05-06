@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: tasksdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tasksdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      POLLING_INTERVAL: 5000
+      MAX_RETRIES: 3
+      WORKER_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tasks"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker-email-1:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tasksdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      POLLING_INTERVAL: 5000
+      MAX_RETRIES: 3
+      WORKER_ENABLED: "true"
+      WORKER_QUEUE: email
+
+  worker-email-2:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tasksdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      POLLING_INTERVAL: 5000
+      MAX_RETRIES: 3
+      WORKER_ENABLED: "true"
+      WORKER_QUEUE: email
+
+  worker-sms-1:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tasksdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      POLLING_INTERVAL: 5000
+      MAX_RETRIES: 3
+      WORKER_ENABLED: "true"
+      WORKER_QUEUE: sms
+
+  worker-sms-2:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: tasksdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      POLLING_INTERVAL: 5000
+      MAX_RETRIES: 3
+      WORKER_ENABLED: "true"
+      WORKER_QUEUE: sms
+
+volumes:
+  postgres_data:
