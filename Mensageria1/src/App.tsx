@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
@@ -52,6 +52,7 @@ function App() {
   const [logs, setLogs] = useState<RequestLog[]>([])
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('Pronto para testar a API.')
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
   function addLog(entry: Omit<RequestLog, 'id' | 'timestamp'>) {
     setLogs((current) => [
@@ -252,6 +253,21 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(async () => {
+      try {
+        const statsData = await requestApi<Stats>(`${API_BASE}/stats`)
+        setStats(statsData)
+      } catch (error) {
+        console.error('Erro ao atualizar estatísticas:', error)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [autoRefresh])
+
   return (
     <main className="app-shell">
       <section className="hero-panel">
@@ -376,6 +392,15 @@ function App() {
               Visualize o status de todas as filas e tarefas
             </p>
 
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(event) => setAutoRefresh(event.target.checked)}
+              />
+              Auto-atualizar (a cada 2s)
+            </label>
+
             <button type="submit" disabled={busyAction === 'stats'}>
               {busyAction === 'stats' ? 'Carregando...' : 'Carregar Estatísticas'}
             </button>
@@ -385,36 +410,51 @@ function App() {
         <aside className="side-column">
           <section className="panel result-panel">
             <div className="panel-header">
-              <h2>Ultima resposta</h2>
-              <span className="feedback">{feedback}</span>
+              <h2>Monitoramento de Workers</h2>
+              <span className="feedback">{autoRefresh ? '🔄 Ao vivo' : '⏸️ Parado'}</span>
             </div>
 
             {stats ? (
               <div className="stats-card">
                 <div className="stats-meta">
-                  <span>Total de tarefas: {stats.total_tasks}</span>
-                  <span>Atualizado: {new Date(stats.timestamp).toLocaleTimeString('pt-BR')}</span>
+                  <span>Total: {stats.total_tasks}</span>
+                  <span>{new Date(stats.timestamp).toLocaleTimeString('pt-BR')}</span>
                 </div>
 
-                <div>
-                  <h3>Filas</h3>
-                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                    {Object.entries(stats.queues).map(([queueName, statusCounts]) => (
-                      <div key={queueName} style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                        <strong>{queueName}</strong>
-                        <ul style={{ listStyle: 'none', padding: '0.5rem 0' }}>
+                <div style={{ marginTop: '1rem' }}>
+                  {Object.entries(stats.queues).length === 0 ? (
+                    <p className="empty-state">Nenhuma fila com tarefas</p>
+                  ) : (
+                    Object.entries(stats.queues).map(([queueName, statusCounts]) => (
+                      <div key={queueName} style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: queueName === 'email' ? '#e8f4f8' : '#f8e8f4', borderRadius: '8px', border: '2px solid #ccc' }}>
+                        <strong style={{ fontSize: '1.1em' }}>📬 {queueName.toUpperCase()}</strong>
+                        <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                           {Object.entries(statusCounts).map(([status, count]) => (
-                            <li key={status}>
-                              <span className={`pill pill-${status}`}>{status}</span>: {count}
-                            </li>
+                            <div key={status} style={{ padding: '0.5rem', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #ddd' }}>
+                              <span className={`pill pill-${status}`}>{status}</span>
+                              <strong style={{ float: 'right' }}>{count}</strong>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
-            ) : selectedTask ? (
+            ) : (
+              <p className="empty-state">
+                Clique em "Carregar Estatísticas" para ativar o monitoramento
+              </p>
+            )}
+          </section>
+
+          <section className="panel result-panel">
+            <div className="panel-header">
+              <h2>Ultima resposta</h2>
+              <span className="feedback">{feedback}</span>
+            </div>
+
+            {selectedTask ? (
               <div className="task-card">
                 <div className="task-meta">
                   <span className={`pill pill-${selectedTask.status}`}>

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.unissales.demo.DTO.CreateTaskRequest;
+import br.unissales.demo.DTO.UpdateTaskStatusRequest;
 import br.unissales.demo.Entity.Task;
 import br.unissales.demo.Service.TaskService;
 
@@ -25,8 +27,9 @@ public class TaskController {
     private TaskService service;
 
     @PostMapping
-    public ResponseEntity<Task> create(@RequestBody Task task) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.createTask(task));
+    public ResponseEntity<Task> create(@RequestBody CreateTaskRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.createTask(request.queueName(), request.payload()));
     }
 
     @GetMapping("/{id}")
@@ -44,8 +47,8 @@ public class TaskController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Task> updateStatus(@PathVariable UUID id, @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(service.updateStatus(id, body.get("status")));
+    public ResponseEntity<Task> updateStatus(@PathVariable UUID id, @RequestBody UpdateTaskStatusRequest body) {
+        return ResponseEntity.ok(service.updateStatus(id, body.status()));
     }
 
     @GetMapping("/stats")

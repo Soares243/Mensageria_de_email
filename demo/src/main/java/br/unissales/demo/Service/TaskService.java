@@ -23,8 +23,11 @@ public class TaskService {
     @Value("${app.max-retries:3}")
     private int maxRetries;
 
-    public Task createTask(Task task) {
+    public Task createTask(String queueName, Map<String, Object> payload) {
+        Task task = new Task();
         task.setId(UUID.randomUUID());
+        task.setQueueName(queueName);
+        task.setPayload(payload);
         task.setStatus("pending");
         task.setAttempts(0);
         task.setCreatedAt(LocalDateTime.now());

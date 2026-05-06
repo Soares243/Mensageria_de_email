@@ -1,7 +1,11 @@
 package br.unissales.demo.Entity;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,8 +31,9 @@ public class Task {
     @Column(name = "queue_name", nullable = false)
     private String queueName;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
-    private String payload;
+    private Map<String, Object> payload;
 
     @Column(nullable = false)
     private String status;
